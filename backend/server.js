@@ -7,7 +7,16 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:4200',           // desarrollo local
+    'https://*.vercel.app',            // cualquier subdominio de vercel
+    'https://vercel.app'               // vercel.app
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // Conexión a MongoDB
