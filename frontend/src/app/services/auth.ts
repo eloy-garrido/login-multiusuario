@@ -38,20 +38,30 @@ export class AuthService {
   setUser(user: User) {
     this.currentUser.set(user);
     this.isLoggedIn.set(true);
-    localStorage.setItem('currentUser', JSON.stringify(user));
+    // Proteger localStorage
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('currentUser', JSON.stringify(user));
+    }
   }
 
   logout() {
     this.currentUser.set(null);
     this.isLoggedIn.set(false);
-    localStorage.removeItem('currentUser');
+    // Proteger localStorage
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('currentUser');
+    }
   }
 
   checkStoredUser() {
-    const storedUser = localStorage.getItem('currentUser');
-    if (storedUser) {
-      const user = JSON.parse(storedUser);
-      this.setUser(user);
+    // Proteger localStorage
+    if (typeof localStorage !== 'undefined') {
+      const storedUser = localStorage.getItem('currentUser');
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        this.currentUser.set(user);
+        this.isLoggedIn.set(true);
+      }
     }
   }
 }
