@@ -6,24 +6,50 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
-app.use(cors({
-  origin: [
-    'http://localhost:4200',           // desarrollo local
-    'https://*.vercel.app',            // cualquier subdominio de vercel
-    'https://vercel.app'               // vercel.app
-  ],
+// Configuración de CORS mejorada
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permitir requests sin origin (como Postman, apps móviles, etc)
+    if (!origin) return callback(null, true);
+    
+    // Lista de orígenes permitidos
+    const allowedOrigins = [
+      'http://localhost:4200',
+      'http://localhost:3000',
+      /https:\/\/.*\.vercel\.app$/  // Regex para cualquier subdominio de vercel.app
+    ];
+    
+    // Verificar si el origin está permitido
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return allowed === origin;
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.log('Origen bloqueado por CORS:', origin);
+      callback(new Error('No permitido por CORS'));
+    }
+  },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Conexión a MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true
-});
+})
+.then(() => console.log('✅ Conectado a MongoDB'))
+.catch(err => console.error('❌ Error conectando a MongoDB:', err));
 
 // Modelo de Usuario
 const userSchema = new mongoose.Schema({
@@ -35,10 +61,17 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model('User', userSchema);
 
+// Ruta de prueba
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', message: 'Backend funcionando correctamente' });
+});
+
 // Ruta de Login
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+    
+    console.log('Intento de login:', { username });
     
     const user = await User.findOne({ username, password });
     
@@ -59,6 +92,7 @@ app.post('/api/login', async (req, res) => {
       });
     }
   } catch (error) {
+    console.error('Error en login:', error);
     res.status(500).json({
       success: false,
       message: 'Error del servidor'
@@ -67,5 +101,5 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
+  console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
 });
